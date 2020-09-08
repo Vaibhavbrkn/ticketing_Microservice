@@ -1,23 +1,21 @@
-import express, { Request, Response } from "express";
-import { body } from "express-validator";
-import jwt from "jsonwebtoken";
+import express, { Request, Response } from 'express';
+import { body } from 'express-validator';
+import jwt from 'jsonwebtoken';
+import { validateRequest, BadRequestError } from '@sgtickets/common';
 
-import { Password } from "../services/password";
-import { User } from "../models/user";
-import { validateRequest } from "../middlewares/validate-request";
-import { BadRequestError } from "../errors/bad-request-error";
+import { Password } from '../services/password';
+import { User } from '../models/user';
 
 const router = express.Router();
 
 router.post(
-  "/api/users/signin",
+  '/api/users/signin',
   [
-    body("email").isEmail().withMessage("Email must be valid"),
-    body("password")
+    body('email').isEmail().withMessage('Email must be valid'),
+    body('password')
       .trim()
-      .isLength({ min: 4, max: 20 })
       .notEmpty()
-      .withMessage("You must supply a Password"),
+      .withMessage('You must supply a password'),
   ],
   validateRequest,
   async (req: Request, res: Response) => {
@@ -25,18 +23,18 @@ router.post(
 
     const existingUser = await User.findOne({ email });
     if (!existingUser) {
-      throw new BadRequestError("Invalid credentials");
+      throw new BadRequestError('Invalid credentials');
     }
 
-    const passwordsMatch = await Password.Compare(
+    const passwordsMatch = await Password.compare(
       existingUser.password,
       password
     );
-
     if (!passwordsMatch) {
-      throw new BadRequestError("Invalid credentials");
+      throw new BadRequestError('Invalid Credentials');
     }
 
+    // Generate JWT
     const userJwt = jwt.sign(
       {
         id: existingUser.id,
@@ -45,8 +43,7 @@ router.post(
       process.env.JWT_KEY!
     );
 
-    //Store it on session object
-
+    // Store it on session object
     req.session = {
       jwt: userJwt,
     };
